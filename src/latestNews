@@ -3,6 +3,11 @@ package smokeTests;
 import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.assertTrue;
 
+import java.io.IOException;
+import java.net.HttpURLConnection;
+import java.net.MalformedURLException;
+import java.net.URL;
+import java.util.Iterator;
 import java.util.List;
 
 import org.junit.After;
@@ -15,90 +20,165 @@ import org.openqa.selenium.WebElement;
 public class latestNews {
 	
 	WebDriver driver;
-	String url = "https://techcrunch.com/";
-
+	static String url = "https://techcrunch.com/";
+	HttpURLConnection urlConnection = null;
+    int responseCode;
+    String responseMessage;
+    
 	@Before
 	public void setUp() throws Exception {
-		System.out.println("Preparing the test");
+		System.out.println("Initializing the test environment");
 		driver = utilities.DriverFactory.open("chrome");
 	}
 	
-
+	private void clickOnFirstArticle()
+	{
+		driver.get(url);
+		driver.findElement(By.xpath("//*[@id=\"tc-main-content\"]/div[2]/div/div/div/article[1]/header/h2/a")).click();
+		
+	}
+	
 	@Test
-	public void testVerifyAuthorAndImages() {
-		System.out.println("Starting the test");
+	//case 1
+	public void testAccessURL()
+	{
 		driver.get(url);
 		String actualTitle = driver.getTitle();
-		System.out.println("ActualTitle  " + actualTitle);
+		System.out.println("Starting the test");
+		System.out.println("Current page title is:  " + actualTitle);
+		//verify we are on techcrunch website
+		assertTrue(actualTitle.contains("TechCrunch"));
+	}
+
+	@Test
+	//case 2.2 a,b
+	public void testVerifyAuthorAndImages() {
 		
-		// 20 articles on the latest news and front page
+		System.out.println("Starting the test");
+		driver.get(url);
+		driver.manage().window().maximize();
 		
-		
-		WebElement secondArticle = driver.findElement(By.xpath("//*[@id=\"tc-main-content\"]/div[2]/div/div/div/article[2]/header/h2/a"));
-		System.out.println(secondArticle.getText());
-		System.out.println(secondArticle.getAttribute("post-block__title__link"));
-		
-		List<WebElement> webElements = driver.findElements(By.xpath("//*[@id=\"tc-main-content\"]/div[2]/div/div/div/article"));
-		System.out.println(webElements.size());
-		System.out.println(webElements.get(1).getText());
-		System.out.println(webElements.get(1).getAttribute("river-byline__authors"));
-		System.out.println(webElements.get(1).findElement(By.tagName("img")).getAttribute("src"));
-		System.out.println(webElements.get(1).findElement(By.className("river-byline__authors")).getText());
-		
-		//implement for loop to show which article is been verified
-		
-		for (WebElement element : webElements)
+		//store all articles as webelements
+        List<WebElement> webElements = driver.findElements(By.xpath("//*[@id=\"tc-main-content\"]/div[2]/div/div/div/article"));
+
+        //loop through each element and verify the author and image
+        for (WebElement element : webElements)
 		{
 			if(
-			!element.findElement(By.tagName("img")).getAttribute("src").isEmpty() &&
-			!element.findElement(By.className("river-byline__authors")).getText().isEmpty()
+			!element.findElement(By.tagName("img")).getAttribute("src").trim().isEmpty() &&
+			!element.findElement(By.className("river-byline__authors")).getText().trim().isEmpty()
 			)
 			{
-				System.out.println("The article has an author and an image" );
-				assertTrue(true);
+				System.out.println("\n The following article has an author and an image : "
+						+ element.getText());
 			}
-			else 
+			else if (!element.findElement(By.tagName("img")).getAttribute("src").trim().isEmpty() 
+				&& element.findElement(By.className("river-byline__authors")).getText().trim().isEmpty())
 			{
-				System.out.println("One of the articles does not have an author and/or an image" );
-				assertTrue(false);
+				System.out.println("\n The following article does not have an author : "
+						+ element.getText());
+			}
+			else if (element.findElement(By.tagName("img")).getAttribute("src").trim().isEmpty() 
+					&& !element.findElement(By.className("river-byline__authors")).getText().trim().isEmpty())
+			{
+				System.out.println("\n The following article does not have an image : "
+						+ element.getText());
+			}
+			else
+			{
+				System.out.println(
+						"\n The article with the following text: " + element.getText() + 
+						" does not have an author and an image" );
 			}
 		}
-		
-		//System.out.println(webElements.get(1).getAttribute("aria-label").toString());
-		//System.out.println(webElements.get(1).getAttribute("src").toString());
-		
-		//iterate over the list and for each webelement, there must be 
-		//img
-		// "river-byline__authors"
-		//a href author
-			
-		//picture 
-		//driver.findElement(By.xpath("//*[@id="tc-main-content"]/div[2]/div/div/div/article[5]/footer/figure/picture"));
-		
-		//author
-		//*[@id="tc-main-content"]/div[2]/div/div/div/article[4]/header/div/div/span/span/a
-		//*[@id="tc-main-content"]/div[2]/div/div/div/article[4]/header/div/div/span
-		//*[@id="tc-main-content"]/div[2]/div/div/div/article[4]/header/div/div/span
-		//*[@id="tc-main-content"]/div[2]/div/div/div/article[2]
-		//*[@id="tc-main-content"]/div[2]/div/div/div/article[1]
-		//*[@id="tc-main-content"]/div[2]/div/div/div/article[3]
-		//*[@id="tc-main-content"]/div[2]/div/div/div/article[8]
-		
-		
 	}
-	
+
 	@Test
-	public void testVerifyDetailsofOneArticle() {
-		//click on the first article
-		//verify browser title is the same as the news title
-		//verify the links ??
+	//case 2 - 3.a.
+	public void testVerifyTitleofArticleAndPage() {
+
+		clickOnFirstArticle();
+		
+		driver.manage().window().maximize();
+		
+		//Get the actual title of web page
+		String actualTitleOfWebPage = driver.getTitle();
+		System.out.println("ActualTitle  :" + actualTitleOfWebPage);
+				
+		String expectedTitle = driver.findElement
+		(By.xpath(
+				"//*[@id=\"tc-main-content\"]/div[2]/div/div/div/article[1]/div[1]/div[1]/header/div[1]/h1")).getText();
+		System.out.println("Expected title :" + expectedTitle);	
+		
+		//Compare the actual title and expected title
+		assertEquals(expectedTitle, actualTitleOfWebPage);
 	}
-	
+
+	@Test
+	//case 2 - 3.b.
+	public void testLinksofOneArticleOnPage() {
+		
+		clickOnFirstArticle();
+		driver.manage().window().maximize();
+		
+		//find and store all links
+		List<WebElement> thelinks = driver.findElements(By.tagName("a"));
+		
+		Iterator<WebElement> iterator = thelinks.iterator();
+		
+		//Iterate through the links and verify each link
+		while (iterator.hasNext())
+		{
+			
+			url = iterator.next().getAttribute("href");
+			
+			if (url == null || url.isEmpty())
+			{
+				System.out.println("Url is empty or not configured: " + iterator.next().getText());
+				continue;
+			}
+			
+			try
+			{
+				urlConnection = (HttpURLConnection)(new URL(url).openConnection());
+				
+				urlConnection.setRequestMethod("HEAD");
+	                
+				urlConnection.connect();
+				
+				responseCode = urlConnection.getResponseCode();
+				
+				responseMessage = urlConnection.getResponseMessage();
+				
+				if (responseCode != 200)
+				{
+					System.out.println("Status Code: " + responseCode + 
+							": " + responseMessage + 
+							"\n Check the link and/or status code: " + url );
+				}
+				else 
+				{
+					System.out.println("Valid link: " + url);
+				}
+				
+			}
+			catch(MalformedURLException e)
+			{
+				e.getMessage();
+			}catch(IOException e)
+			{
+				e.getMessage();
+			}catch(Exception e)
+			{
+				e.getMessage();
+			}	
+		}
+	}	
 
 	@After
 	public void tearDown() throws Exception {
 		System.out.println("Closing the driver");
-		//driver.close();
+		driver.close();
 	}
 
 }
